@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Operator — Confidence Audit Analyzer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
+
+  :root {
+    --black: #0A0A0A;
+    --off-black: #111111;
+    --card: #161616;
+    --border: #232323;
+    --accent: #C8F135;
+    --accent-dim: rgba(200, 241, 53, 0.08);
+    --accent-mid: rgba(200, 241, 53, 0.18);
+    --white: #F5F5F0;
+    --muted: #888880;
+    --low: #FF4444;
+    --mid: #F5A623;
+    --high: #C8F135;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+  }
+
+  .header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    background: var(--black);
+    z-index: 100;
+  }
+
+  .header-badge {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border: 1px solid rgba(200, 241, 53, 0.2);
+    padding: 4px 10px;
+    border-radius: 3px;
+  }
+
+  .header-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  .container {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  .page-eyebrow {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .page-headline {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(26px, 4vw, 40px);
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: -0.02em;
+    margin-bottom: 10px;
+    line-height: 1.1;
+  }
+
+  .page-sub {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 36px;
+    max-width: 560px;
+  }
+
+  /* SCALE REFERENCE */
+  .scale-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 36px;
+  }
+
+  .scale-card-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  .scale-bar {
+    display: flex;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+
+  .scale-seg {
+    flex: 1;
+  }
+
+  .scale-anchors {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+
+  .scale-anchor {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .scale-anchor:nth-child(2) { text-align: center; }
+  .scale-anchor:nth-child(3) { text-align: right; }
+
+  .anchor-num {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 16px;
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .anchor-desc {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  /* DAY ENTRIES */
+  .section-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .days-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .day-entry {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    display: grid;
+    grid-template-columns: 80px 100px 1fr;
+    gap: 16px;
+    align-items: center;
+    transition: border-color 0.15s ease;
+  }
+
+  .day-entry:focus-within {
+    border-color: rgba(200, 241, 53, 0.3);
+  }
+
+  .day-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: 0.05em;
+  }
+
+  .day-label span {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .score-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .score-field {
+    width: 56px;
+    background: var(--off-black);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 8px;
+    color: var(--white);
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.15s ease;
+    -moz-appearance: textfield;
+  }
+
+  .score-field::-webkit-outer-spin-button,
+  .score-field::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  .score-field:focus { border-color: rgba(200, 241, 53, 0.5); }
+  .score-field::placeholder { color: #444; font-size: 14px; font-weight: 400; }
+
+  .score-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+    flex-shrink: 0;
+    transition: background 0.2s ease;
+  }
+
+  .note-field {
+    background: var(--off-black);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.15s ease;
+  }
+
+  .note-field:focus { border-color: rgba(200, 241, 53, 0.4); }
+  .note-field::placeholder { color: #444; }
+
+  /* OPTIONAL CONTEXT */
+  .optional-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .context-area {
+    width: 100%;
+    background: var(--off-black);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    line-height: 1.6;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.15s ease;
+    min-height: 80px;
+    margin-bottom: 32px;
+  }
+
+  .context-area:focus { border-color: rgba(200, 241, 53, 0.4); }
+  .context-area::placeholder { color: #444; }
+
+  /* SUBMIT */
+  .submit-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .btn-analyze {
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    padding: 14px 36px;
+    color: var(--black);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-analyze:hover { background: #d4f545; transform: translateY(-1px); }
+  .btn-analyze:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; transform: none; }
+
+  .btn-clear {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 24px;
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-clear:hover { border-color: var(--muted); color: var(--white); }
+
+  .val-msg {
+    font-size: 13px;
+    color: var(--mid);
+    display: none;
+  }
+
+  .val-msg.show { display: block; }
+
+  /* LOADING */
+  .loading-screen {
+    display: none;
+    text-align: center;
+    padding: 60px 0;
+  }
+
+  .loading-screen.show { display: block; }
+
+  .loading-spinner {
+    width: 44px;
+    height: 44px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 24px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 8px;
+  }
+
+  .loading-sub { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  /* OUTPUT */
+  .output-section {
+    display: none;
+    animation: fadeIn 0.4s ease;
+  }
+
+  .output-section.show { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .output-eyebrow {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .output-headline {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+
+  .output-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+
+  /* SCORE VISUAL */
+  .score-visual {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+  }
+
+  .score-bar-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .score-bar-container {
+    width: 100%;
+    height: 80px;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .score-bar {
+    width: 100%;
+    border-radius: 4px 4px 0 0;
+    transition: height 0.6s ease;
+    min-height: 4px;
+  }
+
+  .score-bar-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--white);
+  }
+
+  .score-bar-day {
+    font-family: 'Syne', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .output-content {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 36px;
+    margin-bottom: 24px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--white);
+  }
+
+  .output-content h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 28px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .output-content h2:first-child { margin-top: 0; }
+  .output-content h3 { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--white); margin-top: 16px; margin-bottom: 8px; }
+  .output-content p { color: #ccc; margin-bottom: 10px; }
+  .output-content ul { padding-left: 20px; margin-bottom: 12px; }
+  .output-content li { color: #ccc; margin-bottom: 6px; }
+  .output-content strong { color: var(--white); font-weight: 600; }
+
+  .output-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .btn-copy {
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    padding: 12px 28px;
+    color: var(--black);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-copy:hover { background: #d4f545; }
+
+  .btn-new {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 24px;
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-new:hover { border-color: var(--muted); color: var(--white); }
+
+  .copy-confirm { font-size: 13px; color: var(--accent); font-weight: 600; display: none; }
+  .copy-confirm.show { display: block; }
+
+  .error-msg {
+    background: rgba(255,68,68,0.08);
+    border: 1px solid rgba(255,68,68,0.25);
+    border-radius: 8px;
+    padding: 14px 18px;
+    color: #ff7070;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 600px) {
+    .day-entry { grid-template-columns: 64px 80px 1fr; gap: 10px; }
+    .score-field { width: 48px; font-size: 16px; }
+    .output-content { padding: 24px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="header-badge">AI Tool</span>
+  <span class="header-title">The Operator — Confidence Audit Analyzer</span>
+</div>
+
+<div class="container">
+
+  <!-- FORM -->
+  <div id="form-section">
+    <div class="page-eyebrow">The Operator System — AI Tool 5 of 5</div>
+    <h1 class="page-headline">Confidence Audit<br>Analyzer</h1>
+    <p class="page-sub">Log your daily confidence audit scores and a one-line note for each day. The AI identifies what drives your best days, what kills your worst ones, and gives you one specific adjustment for next week.</p>
+
+    <!-- SCALE REFERENCE -->
+    <div class="scale-card">
+      <div class="scale-card-label">Confidence Audit Scale</div>
+      <div class="scale-bar">
+        <div class="scale-seg" style="background:#FF4444"></div>
+        <div class="scale-seg" style="background:#ff5c2e"></div>
+        <div class="scale-seg" style="background:#F5A623"></div>
+        <div class="scale-seg" style="background:#d4c020"></div>
+        <div class="scale-seg" style="background:#C8F135"></div>
+        <div class="scale-seg" style="background:#b8e020"></div>
+        <div class="scale-seg" style="background:#a8d010"></div>
+        <div class="scale-seg" style="background:#98c000"></div>
+        <div class="scale-seg" style="background:#88b000"></div>
+        <div class="scale-seg" style="background:#78a000"></div>
+      </div>
+      <div class="scale-anchors">
+        <div class="scale-anchor">
+          <span class="anchor-num" style="color:#FF4444">1</span>
+          <span class="anchor-desc">I would be embarrassed to tell anyone what I got done today. The day was wasted.</span>
+        </div>
+        <div class="scale-anchor">
+          <span class="anchor-num" style="color:var(--mid)">5</span>
+          <span class="anchor-desc">Average day. I did some things but wouldn't feel proud telling people about it.</span>
+        </div>
+        <div class="scale-anchor">
+          <span class="anchor-num" style="color:var(--accent)">10</span>
+          <span class="anchor-desc">I would confidently and proudly tell anyone what I accomplished today. Elite output.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- DAY ENTRIES -->
+    <div class="section-label">Daily Scores and Notes</div>
+    <div class="days-list" id="days-list"></div>
+
+    <!-- OPTIONAL CONTEXT -->
+    <div class="optional-label">Additional Context (optional)</div>
+    <textarea class="context-area" id="context" placeholder="Anything relevant to the week — unusual circumstances, what you were working on, how the system felt overall..."></textarea>
+
+    <div class="submit-row">
+      <button class="btn-analyze" onclick="runAnalysis()">Analyze My Week →</button>
+      <button class="btn-clear" onclick="clearAll()">Clear</button>
+      <span class="val-msg" id="val-msg">Enter at least 4 daily scores to run the analysis.</span>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div class="loading-screen" id="loading-screen">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Analyzing Your Confidence Data</div>
+    <div class="loading-sub">Reading your scores and notes to identify what's actually driving<br>your best and worst days. Give it 20–30 seconds.</div>
+  </div>
+
+  <!-- OUTPUT -->
+  <div class="output-section" id="output-section">
+    <div class="output-eyebrow">Your Weekly Confidence Analysis</div>
+    <div class="output-headline">Confidence Audit Report</div>
+    <div class="output-sub">Copy this into your Notion dashboard alongside your weekly review.</div>
+    <div class="score-visual" id="score-visual"></div>
+    <div class="output-content" id="output-content"></div>
+    <div class="output-actions">
+      <button class="btn-copy" onclick="copyOutput()">Copy to Clipboard</button>
+      <button class="btn-new" onclick="newWeek()">Log Another Week</button>
+      <span class="copy-confirm" id="copy-confirm">✓ Copied</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const DAYS = [
+  { id: 'mon', label: 'Monday', short: 'MON' },
+  { id: 'tue', label: 'Tuesday', short: 'TUE' },
+  { id: 'wed', label: 'Wednesday', short: 'WED' },
+  { id: 'thu', label: 'Thursday', short: 'THU' },
+  { id: 'fri', label: 'Friday', short: 'FRI' },
+  { id: 'sat', label: 'Saturday', short: 'SAT' },
+  { id: 'sun', label: 'Sunday', short: 'SUN' }
+];
+
+function buildDaysList() {
+  const list = document.getElementById('days-list');
+  list.innerHTML = DAYS.map(day => `
+    <div class="day-entry" id="entry-${day.id}">
+      <div class="day-label">
+        ${day.label}
+        <span>${day.short}</span>
+      </div>
+      <div class="score-wrapper">
+        <input
+          class="score-field"
+          type="number"
+          min="1" max="10"
+          id="score-${day.id}"
+          placeholder="—"
+          oninput="updateIndicator('${day.id}', this.value)"
+        />
+        <div class="score-indicator" id="indicator-${day.id}"></div>
+      </div>
+      <input
+        class="note-field"
+        type="text"
+        id="note-${day.id}"
+        placeholder="What happened today? One line..."
+        maxlength="200"
+      />
+    </div>
+  `).join('');
+}
+
+function updateIndicator(dayId, val) {
+  const indicator = document.getElementById(`indicator-${dayId}`);
+  const num = parseInt(val);
+  if (!num || num < 1 || num > 10) {
+    indicator.style.background = 'var(--border)';
+    return;
+  }
+  if (num <= 3) indicator.style.background = 'var(--low)';
+  else if (num <= 6) indicator.style.background = 'var(--mid)';
+  else indicator.style.background = 'var(--high)';
+}
+
+function getScores() {
+  return DAYS.map(day => ({
+    day: day.label,
+    short: day.short,
+    score: parseInt(document.getElementById(`score-${day.id}`).value) || null,
+    note: document.getElementById(`note-${day.id}`).value.trim() || null
+  }));
+}
+
+function hasEnoughData() {
+  return getScores().filter(d => d.score !== null).length >= 4;
+}
+
+function buildDataString() {
+  const scores = getScores();
+  const valid = scores.filter(d => d.score !== null);
+  const avg = valid.length ? (valid.reduce((a, b) => a + b.score, 0) / valid.length).toFixed(1) : 'N/A';
+  const context = document.getElementById('context').value.trim();
+
+  const dayLines = scores.map(d => {
+    if (!d.score) return `${d.day}: No data`;
+    return `${d.day}: ${d.score}/10${d.note ? ` — "${d.note}"` : ' — no note'}`;
+  }).join('\n');
+
+  return `SCALE: 1 = embarrassed to tell anyone what I got done, completely wasted day | 5 = average, did some things but not proud | 10 = would confidently and proudly tell anyone, elite output day
+
+DAILY CONFIDENCE AUDIT SCORES:
+${dayLines}
+
+WEEKLY AVERAGE: ${avg}/10
+DAYS LOGGED: ${valid.length}/7
+${context ? `\nADDITIONAL CONTEXT: ${context}` : ''}`;
+}
+
+function buildScoreVisual(scores) {
+  const valid = scores.filter(d => d.score !== null);
+  if (!valid.length) return;
+
+  const visual = document.getElementById('score-visual');
+  visual.innerHTML = scores.map(d => {
+    const score = d.score;
+    const height = score ? (score / 10) * 80 : 4;
+    const color = !score ? 'var(--border)' : score <= 3 ? 'var(--low)' : score <= 6 ? 'var(--mid)' : 'var(--high)';
+    const displayScore = score || '—';
+
+    return `
+      <div class="score-bar-wrap">
+        <div class="score-bar-num" style="color:${color}">${displayScore}</div>
+        <div class="score-bar-container">
+          <div class="score-bar" style="height:${height}px; background:${color}"></div>
+        </div>
+        <div class="score-bar-day">${d.short}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function runAnalysis() {
+  if (!hasEnoughData()) {
+    document.getElementById('val-msg').classList.add('show');
+    return;
+  }
+  document.getElementById('val-msg').classList.remove('show');
+
+  const scores = getScores();
+  buildScoreVisual(scores);
+
+  document.getElementById('form-section').style.display = 'none';
+  document.getElementById('loading-screen').classList.add('show');
+
+  const systemPrompt = `You are the confidence analysis engine behind The Operator System — a premium performance course built around biological optimization, psychological operating systems, and execution architecture.
+
+THE CONFIDENCE AUDIT:
+The Operator System uses a daily end-of-day confidence audit as a core performance measurement tool. The single question asked each day: "How confident would I feel telling the people I respect most what I got done today?"
+
+SCALE:
+1 = Embarrassed to tell anyone. The day was wasted. Zero meaningful output.
+2–3 = Very low. Minimal output. Significant execution failure.
+4–5 = Below average to average. Some things done but not proud of the day.
+6–7 = Decent. Solid output but room for more.
+8–9 = Strong. Would tell people proudly. High output day.
+10 = Elite. Would confidently tell anyone. Maximum meaningful output achieved.
+
+YOUR FRAMEWORK FOR ANALYSIS:
+- Score patterns reveal execution architecture quality — which days, which conditions produce high output
+- Score-to-note correlations reveal causal factors — what circumstances drive high vs low confidence
+- Mid-week dips often indicate energy management or deep work scheduling issues
+- Low Monday or Friday scores often indicate evening ritual or weekly review failures
+- Consistent 5–6 scores suggest a self-image ceiling — the student is unconsciously capping their output at average
+- A high-score day followed immediately by a low-score day often indicates the winner effect working in reverse — success followed by unconscious self-correction back to baseline
+- The gap between what a student believes they should do and what they actually do shows up in the notes
+
+OUTPUT FORMAT: HTML with <h2> for section headers, <h3> for subsections, <p> and <ul><li> for content. Direct, specific, personal. Reference actual scores and notes. Address as "you". Complete all five sections fully.`;
+
+  const userPrompt = `Analyze my weekly confidence audit data and give me my report.
+
+${buildDataString()}
+
+SECTION REQUIREMENTS:
+
+1. WEEK AT A GLANCE — 2-3 sentences summarizing the week's confidence data. State the average, the range, and the overall picture the scores paint. Be direct about what this week's data says about execution quality.
+
+2. PATTERN ANALYSIS — Identify 2-4 specific patterns in the scores. Reference specific days and scores. Look for: day-of-week trends, score trajectories across the week, correlations between notes and scores, any post-high-day crashes, mid-week dips, or clusters of low days. If notes reveal causes, name them explicitly. This is the most important section — be precise and evidence-based.
+
+3. CONFIDENCE DRIVERS — Based on the high-scoring days and their notes, what conditions and behaviors produced the best results? What do the best days have in common? If there are no clear high days, note what the data is missing and what to look for. These are the patterns to protect and replicate.
+
+4. CONFIDENCE KILLERS — Based on the low-scoring days and their notes, what conditions and behaviors produced the worst results? What do the low days have in common? Name the root cause pattern — not just the symptom. If it maps to a specific execution or psychological failure (e.g. Parkinson's Law, learned helplessness, self-image ceiling), name it.
+
+5. ONE ADJUSTMENT — The single most important change to make in the coming week based on everything in this data. One specific, concrete, implementable action. Not a list. Not general advice. One thing that directly addresses the dominant failure pattern identified in the analysis.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 8000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+
+    const data = await response.json();
+    const rawText = data.content?.map(c => c.text || '').join('') || '';
+    const outputHTML = rawText.replace(/```html|```/g, '').trim();
+
+    document.getElementById('loading-screen').classList.remove('show');
+
+    if (!outputHTML) throw new Error('Empty response');
+
+    document.getElementById('output-content').innerHTML = outputHTML;
+    document.getElementById('output-section').classList.add('show');
+    window.scrollTo(0, 0);
+
+  } catch (err) {
+    document.getElementById('loading-screen').classList.remove('show');
+    document.getElementById('output-content').innerHTML = `<div class="error-msg">Something went wrong: ${err.message}. Please try again.</div>`;
+    document.getElementById('output-section').classList.add('show');
+  }
+}
+
+function copyOutput() {
+  const visual = document.getElementById('score-visual');
+  const content = document.getElementById('output-content');
+  const text = (visual ? visual.innerText + '\n\n' : '') + (content ? content.innerText : '');
+  navigator.clipboard.writeText(text).then(() => {
+    const confirm = document.getElementById('copy-confirm');
+    confirm.classList.add('show');
+    setTimeout(() => confirm.classList.remove('show'), 3000);
+  });
+}
+
+function clearAll() {
+  DAYS.forEach(day => {
+    document.getElementById(`score-${day.id}`).value = '';
+    document.getElementById(`note-${day.id}`).value = '';
+    document.getElementById(`indicator-${day.id}`).style.background = 'var(--border)';
+  });
+  document.getElementById('context').value = '';
+  document.getElementById('val-msg').classList.remove('show');
+}
+
+function newWeek() {
+  clearAll();
+  document.getElementById('output-section').classList.remove('show');
+  document.getElementById('form-section').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+buildDaysList();
+</script>
+</body>
+</html>

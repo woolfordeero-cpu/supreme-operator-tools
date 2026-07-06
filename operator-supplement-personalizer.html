@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Operator — Supplement Stack Personalizer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
+
+  :root {
+    --black: #0A0A0A;
+    --off-black: #111111;
+    --card: #161616;
+    --border: #232323;
+    --accent: #C8F135;
+    --accent-dim: rgba(200, 241, 53, 0.08);
+    --accent-mid: rgba(200, 241, 53, 0.18);
+    --white: #F5F5F0;
+    --muted: #888880;
+    --warning-bg: rgba(245, 166, 35, 0.08);
+    --warning-border: rgba(245, 166, 35, 0.3);
+    --warning-text: #F5A623;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+  }
+
+  .header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    background: var(--black);
+    z-index: 100;
+  }
+
+  .header-badge {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border: 1px solid rgba(200, 241, 53, 0.2);
+    padding: 4px 10px;
+    border-radius: 3px;
+  }
+
+  .header-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  .container {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  .page-eyebrow {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .page-headline {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(26px, 4vw, 40px);
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: -0.02em;
+    margin-bottom: 10px;
+    line-height: 1.1;
+  }
+
+  .page-sub {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 40px;
+    max-width: 560px;
+  }
+
+  /* DISCLAIMER */
+  .disclaimer {
+    background: var(--warning-bg);
+    border: 1px solid var(--warning-border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 36px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+
+  .disclaimer-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .disclaimer-text {
+    font-size: 13px;
+    color: var(--warning-text);
+    line-height: 1.65;
+  }
+
+  .disclaimer-text strong {
+    font-weight: 700;
+    display: block;
+    margin-bottom: 4px;
+    font-family: 'Syne', sans-serif;
+    letter-spacing: 0.05em;
+    font-size: 12px;
+    text-transform: uppercase;
+  }
+
+  /* PROGRESS */
+  .progress-wrapper {
+    margin-bottom: 36px;
+  }
+
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .progress-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .progress-count {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .progress-track {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  /* QUESTION CARD */
+  .question-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 36px;
+    margin-bottom: 24px;
+  }
+
+  .question-number {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .question-text {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--white);
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+
+  .question-hint {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 28px;
+  }
+
+  .multi-hint {
+    font-size: 11px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+
+  /* OPTIONS */
+  .options-grid {
+    display: grid;
+    gap: 10px;
+  }
+
+  .options-grid.two-col {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .option-btn {
+    background: var(--off-black);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+    line-height: 1.4;
+  }
+
+  .option-btn:hover {
+    border-color: rgba(200, 241, 53, 0.4);
+    background: var(--accent-dim);
+  }
+
+  .option-btn.selected {
+    border-color: var(--accent);
+    background: var(--accent-mid);
+    color: var(--accent);
+  }
+
+  .option-btn.disabled-max {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* NAV */
+  .nav-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .btn-back {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 13px 24px;
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-back:hover { border-color: var(--muted); color: var(--white); }
+
+  .btn-next {
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    padding: 13px 32px;
+    color: var(--black);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    margin-left: auto;
+  }
+
+  .btn-next:hover { background: #d4f545; transform: translateY(-1px); }
+  .btn-next:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; transform: none; }
+
+  /* LOADING */
+  .loading-screen {
+    text-align: center;
+    padding: 60px 0;
+    display: none;
+  }
+
+  .loading-screen.show { display: block; }
+
+  .loading-spinner {
+    width: 44px;
+    height: 44px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 24px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 8px;
+  }
+
+  .loading-sub { font-size: 13px; color: var(--muted); }
+
+  /* OUTPUT */
+  .output-section {
+    display: none;
+    animation: fadeIn 0.4s ease;
+  }
+
+  .output-section.show { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .output-eyebrow {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .output-headline {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+
+  .output-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 28px;
+  }
+
+  .output-disclaimer {
+    background: var(--warning-bg);
+    border: 1px solid var(--warning-border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 24px;
+    font-size: 12px;
+    color: var(--warning-text);
+    line-height: 1.6;
+  }
+
+  .output-content {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 36px;
+    margin-bottom: 24px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--white);
+  }
+
+  .output-content h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 28px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .output-content h2:first-child { margin-top: 0; }
+
+  .output-content h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--white);
+    margin-top: 16px;
+    margin-bottom: 8px;
+  }
+
+  .output-content p { color: #ccc; margin-bottom: 10px; }
+  .output-content ul { padding-left: 20px; margin-bottom: 12px; }
+  .output-content li { color: #ccc; margin-bottom: 6px; }
+  .output-content strong { color: var(--white); font-weight: 600; }
+
+  .output-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .btn-copy {
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    padding: 12px 28px;
+    color: var(--black);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-copy:hover { background: #d4f545; }
+
+  .btn-restart {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 24px;
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-restart:hover { border-color: var(--muted); color: var(--white); }
+
+  .copy-confirm {
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 600;
+    display: none;
+  }
+
+  .copy-confirm.show { display: block; }
+
+  .error-msg {
+    background: rgba(255,68,68,0.08);
+    border: 1px solid rgba(255,68,68,0.25);
+    border-radius: 8px;
+    padding: 14px 18px;
+    color: #ff7070;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 580px) {
+    .options-grid.two-col { grid-template-columns: 1fr; }
+    .question-card { padding: 24px 18px; }
+    .output-content { padding: 24px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="header-badge">AI Tool</span>
+  <span class="header-title">The Operator — Supplement Stack Personalizer</span>
+</div>
+
+<div class="container">
+
+  <!-- INTRO + DISCLAIMER -->
+  <div id="intro-section">
+    <div class="page-eyebrow">The Operator System — AI Tool 3 of 5</div>
+    <h1 class="page-headline">Supplement Stack<br>Personalizer</h1>
+    <p class="page-sub">Answer 8 questions. Get a personalized starting stack pulled from the Operator master guide — organized by time of day, calibrated to your goals, experience, and budget.</p>
+
+    <div class="disclaimer">
+      <div class="disclaimer-icon">⚠️</div>
+      <div class="disclaimer-text">
+        <strong>Important — Read Before Proceeding</strong>
+        Everything in this tool and in The Operator System reflects personal use and personal research — not medical advice. These recommendations are educational only. Do not combine 5-HTP with SSRIs or other serotonin-affecting medications — serotonin syndrome risk. Advanced compounds including Methylene Blue and Nicotine carry additional considerations; research thoroughly before use. Consult a qualified healthcare professional before starting any new supplement protocol.
+      </div>
+    </div>
+
+    <button class="btn-next" onclick="startQuiz()" style="width:100%; justify-content:center;">Begin Personalization →</button>
+  </div>
+
+  <!-- QUIZ SECTION -->
+  <div id="quiz-section" style="display:none;">
+    <div class="progress-wrapper">
+      <div class="progress-meta">
+        <span class="progress-label">Personalizing Your Stack</span>
+        <span class="progress-count" id="progress-count">1 / 8</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div id="question-container"></div>
+
+    <div class="nav-row">
+      <button class="btn-back" id="back-btn" onclick="goBack()">← Back</button>
+      <button class="btn-next" id="next-btn" onclick="goNext()" disabled>Next →</button>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div class="loading-screen" id="loading-screen">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Building Your Stack</div>
+    <div class="loading-sub">Matching your goals and profile to the Operator framework.<br>Give it 20–30 seconds.</div>
+  </div>
+
+  <!-- OUTPUT -->
+  <div class="output-section" id="output-section">
+    <div class="output-eyebrow">Your Personalized Stack</div>
+    <div class="output-headline">Your Operator Stack</div>
+    <div class="output-sub">Copy this into your Notion dashboard. Refine over time using the weekly review ritual.</div>
+    <div class="output-disclaimer">
+      ⚠️ Reminder: Everything here is personal research and personal use — not medical advice. If you take SSRIs or other medications, consult a professional before adding any serotonergic compounds (5-HTP, Saffron). Advanced compounds are labeled — approach them with appropriate research and caution.
+    </div>
+    <div style="background: var(--accent-dim); border: 1px solid rgba(200,241,53,0.2); border-radius: 8px; padding: 14px 18px; margin-bottom: 24px; font-size: 13px; color: var(--white); line-height: 1.7;">
+      <strong style="font-family: Syne, sans-serif; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 8px;">Priority Score Guide</strong>
+      Every compound is scored <strong>[P1]–[P5]</strong> based on how directly it serves <em>your specific goals</em>. P1 = start here, non-negotiable. P5 = lowest urgency for your profile. Use this to build your stack gradually without overwhelm — start with P1s, add P2s when ready, work your way down.
+    </div>
+    <div class="output-content" id="output-content"></div>
+    <div class="output-actions">
+      <button class="btn-copy" onclick="copyOutput()">Copy to Clipboard</button>
+      <button class="btn-restart" onclick="restart()">Start Over</button>
+      <span class="copy-confirm" id="copy-confirm">✓ Copied</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const QUESTIONS = [
+  {
+    id: 'experience',
+    text: 'What is your current experience with supplementation?',
+    hint: 'This determines how aggressive your starting stack will be.',
+    type: 'single',
+    options: [
+      'Complete beginner — I take nothing currently',
+      'Basic — just protein, creatine, or a multivitamin',
+      'Moderate — I run a few targeted supplements already',
+      'Advanced — I already run a full stack and want to optimize'
+    ]
+  },
+  {
+    id: 'goals',
+    text: 'What are your primary goals? Select up to three.',
+    hint: 'Your stack will be weighted toward compounds that serve these goals most directly.',
+    type: 'multi',
+    max: 3,
+    options: [
+      'Maximum cognitive focus and deep work capacity',
+      'Sustained energy without crashes',
+      'Mood stability and stress resilience',
+      'Sleep quality and recovery',
+      'Testosterone and drive optimization',
+      'Mitochondrial efficiency and long-term brain health',
+      'Dopamine optimization — motivation and reward',
+      'Anxiety reduction and calm focus'
+    ]
+  },
+  {
+    id: 'budget',
+    text: 'What is your monthly supplement budget?',
+    hint: 'This determines which compounds make the priority cut. The full stack runs approximately $200–$350/month at quality brands.',
+    type: 'single',
+    options: [
+      'Under $50/month — essentials only',
+      '$50–$100/month — targeted core stack',
+      '$100–$200/month — comprehensive stack',
+      '$200+/month — full Operator stack, no compromises'
+    ]
+  },
+  {
+    id: 'stimulant_tolerance',
+    text: 'How is your current tolerance and sensitivity to stimulants?',
+    hint: 'Caffeine, nicotine, and Teacrine dosing will be calibrated to this.',
+    type: 'single',
+    options: [
+      'Very sensitive — even small amounts of caffeine affect me strongly',
+      'Moderate — I drink 1–2 coffees a day without issue',
+      'High tolerance — I need significant caffeine to feel effects',
+      'I currently avoid stimulants entirely'
+    ]
+  },
+  {
+    id: 'sleep_priority',
+    text: 'How is your current sleep quality?',
+    hint: 'Poor sleep means we front-load the evening stack and prioritize sleep compounds heavily.',
+    type: 'single',
+    options: [
+      'Poor — I rarely feel rested',
+      'Below average — sleep is inconsistent',
+      'Average — depends on the night',
+      'Good — I sleep well most nights'
+    ],
+    twoCol: true
+  },
+  {
+    id: 'anxiety_level',
+    text: 'Do you experience anxiety, jitters, or elevated baseline stress?',
+    hint: 'This affects whether we include L-Theanine with stimulants and how we weight the adaptogen stack.',
+    type: 'single',
+    options: [
+      'Yes — anxiety is a significant issue for me',
+      'Mild — I get jittery or stressed sometimes',
+      'Rarely — I am generally calm under pressure',
+      'No — stress and anxiety are not concerns'
+    ]
+  },
+  {
+    id: 'advanced_openness',
+    text: 'Are you open to advanced or unconventional compounds?',
+    hint: 'This includes Methylene Blue, Nicotine (patch/gum), Tongkat Ali, and Huperzine A. These are clearly labeled in your output.',
+    type: 'single',
+    options: [
+      'No — keep it conventional and well-researched only',
+      'Open to some — show me what\'s relevant but flag them clearly',
+      'Yes — I want the full advanced tier if it serves my goals'
+    ]
+  },
+  {
+    id: 'schedule',
+    text: 'When does your primary work window start?',
+    hint: 'This sets the timing architecture for your morning stack.',
+    type: 'single',
+    options: [
+      'Before 7am',
+      '7–8am',
+      '8–9am',
+      '9–10am',
+      'After 10am'
+    ],
+    twoCol: true
+  }
+];
+
+let currentQ = 0;
+const answers = {};
+const multiSelections = {};
+
+function startQuiz() {
+  document.getElementById('intro-section').style.display = 'none';
+  document.getElementById('quiz-section').style.display = 'block';
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = QUESTIONS[currentQ];
+  const progress = (currentQ / QUESTIONS.length) * 100;
+  document.getElementById('progress-fill').style.width = progress + '%';
+  document.getElementById('progress-count').textContent = `${currentQ + 1} / ${QUESTIONS.length}`;
+  document.getElementById('back-btn').style.visibility = currentQ === 0 ? 'hidden' : 'visible';
+
+  let optionsHTML = '';
+  if (q.type === 'single') {
+    const gridClass = q.twoCol ? 'options-grid two-col' : 'options-grid';
+    optionsHTML = `<div class="${gridClass}">
+      ${q.options.map(opt => `
+        <button class="option-btn ${answers[q.id] === opt ? 'selected' : ''}"
+          onclick="selectSingle('${q.id}', this, \`${opt}\`)">
+          ${opt}
+        </button>
+      `).join('')}
+    </div>`;
+  } else if (q.type === 'multi') {
+    if (!multiSelections[q.id]) multiSelections[q.id] = [];
+    const selected = multiSelections[q.id];
+    optionsHTML = `
+      <div class="multi-hint">Select up to ${q.max}</div>
+      <div class="options-grid">
+        ${q.options.map(opt => {
+          const isSelected = selected.includes(opt);
+          const isDisabled = !isSelected && selected.length >= q.max;
+          return `<button class="option-btn ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled-max' : ''}"
+            onclick="selectMulti('${q.id}', this, \`${opt}\`, ${q.max})">
+            ${opt}
+          </button>`;
+        }).join('')}
+      </div>`;
+  }
+
+  const canProceed = q.type === 'multi'
+    ? (multiSelections[q.id] && multiSelections[q.id].length > 0)
+    : !!answers[q.id];
+
+  document.getElementById('question-container').innerHTML = `
+    <div class="question-card">
+      <div class="question-number">Question ${currentQ + 1} of ${QUESTIONS.length}</div>
+      <div class="question-text">${q.text}</div>
+      <div class="question-hint">${q.hint}</div>
+      ${optionsHTML}
+    </div>
+  `;
+
+  document.getElementById('next-btn').disabled = !canProceed;
+  document.getElementById('next-btn').textContent = currentQ === QUESTIONS.length - 1 ? 'Build My Stack →' : 'Next →';
+}
+
+function selectSingle(qId, btn, value) {
+  answers[qId] = value;
+  document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  document.getElementById('next-btn').disabled = false;
+}
+
+function selectMulti(qId, btn, value, max) {
+  if (!multiSelections[qId]) multiSelections[qId] = [];
+  const sel = multiSelections[qId];
+  const idx = sel.indexOf(value);
+
+  if (idx > -1) {
+    sel.splice(idx, 1);
+    btn.classList.remove('selected');
+  } else {
+    if (sel.length >= max) return;
+    sel.push(value);
+    btn.classList.add('selected');
+  }
+
+  answers[qId] = sel.join(', ');
+
+  // Update disabled states
+  document.querySelectorAll('.option-btn').forEach(b => {
+    const isSelected = sel.includes(b.textContent.trim());
+    b.classList.toggle('disabled-max', !isSelected && sel.length >= max);
+  });
+
+  document.getElementById('next-btn').disabled = sel.length === 0;
+}
+
+function goNext() {
+  if (currentQ === QUESTIONS.length - 1) {
+    buildStack();
+  } else {
+    currentQ++;
+    renderQuestion();
+  }
+}
+
+function goBack() {
+  if (currentQ > 0) { currentQ--; renderQuestion(); }
+}
+
+async function buildStack() {
+  document.getElementById('quiz-section').style.display = 'none';
+  document.getElementById('loading-screen').classList.add('show');
+
+  const systemPrompt = `You are the supplement recommendation engine behind The Operator System — a premium performance course built around biological optimization.
+
+THE COMPLETE OPERATOR STACK (your source material — recommend only from this list):
+
+FOUNDATION LAYER (general health — always recommended regardless of budget):
+- Magnesium Glycinate: 300–500mg, evening. Sleep, anxiety, recovery.
+- Zinc: 15–30mg, with food (anytime). Take away from iron.
+- Vitamin D3 + K2: 2000–5000 IU D3 / 100mcg K2, morning with fat. Affiliate: Sports Research D3+K2.
+- Fish Oil (Omega-3): 2–4g EPA/DHA, anytime with food. Affiliate: Sports Research Fish Oil.
+- Methylated B-Complex: per label, morning. Methylcobalamin + methylfolate forms only.
+- Multivitamin: per label, morning. Affiliate: Sports Research Sport Multivitamin.
+- Electrolytes: per label, first thing in morning.
+- Creatine: 5–10g, morning (higher than typical dose). Cognitive + physical.
+- Taurine: 2–6g, morning (higher than typical dose). Mitochondrial + hydration.
+
+DOPAMINERGIC / STIMULANT STACK (morning):
+- Caffeine: 100–200mg. 5 days on / 2 days off.
+- L-Tyrosine: 500–2000mg, morning empty stomach. Dopamine precursor.
+- Rhodiola Rosea: 300–600mg, morning before food. Fatigue resistance, dopamine modulation.
+- Uridine Monophosphate: 150–250mg, morning. Dopamine receptor upregulation.
+- Teacrine: 100–200mg, morning. Extended stimulant effect, lower tolerance buildup than caffeine.
+- Nicotine [ADVANCED]: 1–5mg patch or gum, morning. 5 days on / 2 days off. Minimum effective dose only. Personal use framing.
+
+CHOLINERGIC STACK (morning):
+- Alpha-GPC: 300–600mg, morning. Best bioavailable choline. Focus + memory.
+- Huperzine A [ADVANCED — CYCLE]: 50–200mcg, morning. Cycle 2 weeks on / 1 week off. Do not take daily.
+
+MITOCHONDRIAL STACK (morning):
+- Methylene Blue [ADVANCED]: 1–10mg, morning. Take early — affects sleep if taken late.
+- Ubiquinol (CoQ10): 100–300mg, morning with fat.
+- NMN: 250–500mg, morning. NAD+ support, circadian rhythm.
+- PQQ: 10–20mg, morning with CoQ10.
+
+NEUROPLASTICITY (morning):
+- Lion's Mane: 500–1000mg, morning. NGF support, neuroplasticity.
+- Ginkgo Biloba [OPTIONAL]: 120–240mg, anytime. Moderate evidence — secondary add.
+
+LATE MORNING OPTIONAL (mood bridge — prevents afternoon dopamine crash):
+- Ashwagandha (KSM-66): 300–600mg. Can split AM/PM. Cortisol reduction, stress resilience.
+- Saffron: 30mg. Mood stabilization, MAO modulation. Also 30mg in evening. [INTERACTION: Do not combine with SSRIs]
+- L-Theanine: 100–200mg. Stack with caffeine to reduce jitters while preserving wakefulness.
+
+TESTOSTERONE / CORTISOL (anytime):
+- Tongkat Ali: 200–400mg, anytime. Testosterone optimization, cortisol balance.
+- Boron: 3–6mg, anytime. Testosterone and estrogen metabolism.
+- Selenium: 100–200mcg, anytime. Do not exceed 400mcg. Antioxidant, thyroid.
+- Copper: 1–2mg, anytime. Balance with zinc.
+
+EVENING STACK:
+- Magnesium Glycinate (already listed above — primary evening use)
+- 5-HTP: 100–300mg, evening only. Serotonin precursor. [INTERACTION WARNING: Do not combine with SSRIs — serotonin syndrome risk]
+- Apigenin: 50mg, evening. Sleep quality.
+- Myo-Inositol: 2–4g, evening. Anxiety, insulin sensitivity, sleep.
+- Melatonin: 0.5–3mg, evening. Lower end is more physiologically accurate.
+- NAC: 600–1800mg, evening. Glutathione replenishment. Protects against oxidative stress from daytime stimulants.
+- Vitamin C: 500–1000mg, evening (can split AM/PM).
+
+OUTPUT FORMAT: Use HTML with <h2> for section headers, <h3> for subsections, <p> and <ul><li> for content. Be specific. Reference their goals and answers directly. Address them as "you".
+
+PRIORITY SCORING SYSTEM — CRITICAL:
+Every compound listed in sections 2 and 3 must include a priority score from 1–5 based on how directly it serves the student's specific stated goals. This is goal-relative — the same compound gets different scores for different goal profiles.
+
+Priority scale:
+- [P1] — Non-negotiable for your goals. Start here.
+- [P2] — High impact for your goals. Add in week 2–3.
+- [P3] — Meaningful support for your goals. Add when budget and tolerance allow.
+- [P4] — Secondary benefit for your goals. Worth adding once the core stack is dialed in.
+- [P5] — Nice to have. Lowest urgency given your specific goals.
+
+Format every compound entry as:
+[P#] Compound Name — dose — timing — one-line reason specific to their goals
+
+Example: [P1] Creatine — 5–10g — morning — cognitive and physical output, foundational for your deep work goal
+
+Complete ALL four sections fully:
+1. YOUR STACK PROFILE
+2. START HERE — PRIORITY SHORTLIST
+3. YOUR FULL TIME-ORGANIZED PROTOCOL
+4. STACK NOTES AND CYCLING RULES`;
+
+  const userPrompt = `Build my personalized Operator supplement stack based on these answers:
+
+- Experience level: ${answers['experience'] || 'unspecified'}
+- Primary goals: ${answers['goals'] || 'unspecified'}
+- Monthly budget: ${answers['budget'] || 'unspecified'}
+- Stimulant tolerance: ${answers['stimulant_tolerance'] || 'unspecified'}
+- Sleep quality: ${answers['sleep_priority'] || 'unspecified'}
+- Anxiety/stress level: ${answers['anxiety_level'] || 'unspecified'}
+- Open to advanced compounds: ${answers['advanced_openness'] || 'unspecified'}
+- Work window start: ${answers['schedule'] || 'unspecified'}
+
+SECTION REQUIREMENTS:
+
+1. YOUR STACK PROFILE — 2-3 sentences summarizing their situation and what the stack is designed to do for them specifically. Reference their goals and budget.
+
+2. START HERE — PRIORITY SHORTLIST — The 5–8 highest priority compounds to start with given their experience, goals, and budget. Every compound must have a [P1] or [P2] priority score — this section contains only the most important ones. Format: [P#] Compound — dose — timing — one-line goal-specific reason. Label any advanced compounds with [ADVANCED]. This is their week-one stack.
+
+3. YOUR FULL TIME-ORGANIZED PROTOCOL — The complete recommended stack organized by time of day, ready to run once they've dialed in the shortlist for 2–4 weeks. Every single compound must include its priority score [P1]–[P5] based on their specific goals, so they can see at a glance what to add next and what is lowest urgency. Sections:
+   - Morning Stack — all morning compounds with [P#] scores
+   - Late Morning Add-Ons — if relevant to their goals, with [P#] scores
+   - Anytime / Foundation — foundation compounds with [P#] scores
+   - Evening Stack — all evening compounds with [P#] scores
+   Only include compounds relevant to their stated goals and within their budget tier. Exclude advanced compounds if they selected "conventional only". Label advanced compounds with [ADVANCED] in addition to their priority score.
+
+4. STACK NOTES AND CYCLING RULES — Cover:
+   - Stimulant cycling protocol (caffeine + nicotine: 5 on / 2 off; Teacrine cycling; Huperzine A cycling if included)
+   - Any interaction warnings relevant to their stack (include 5-HTP/SSRI warning if 5-HTP is recommended)
+   - One sentence directing them to the Sports Research affiliate products for their foundation layer
+   - One sentence directing them to the Supplement Stack Guide PDF in the course for full compound details and dose rationale`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 16000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+
+    const data = await response.json();
+    const rawText = data.content?.map(c => c.text || '').join('') || '';
+    const outputHTML = rawText.replace(/```html|```/g, '').trim();
+
+    document.getElementById('loading-screen').classList.remove('show');
+
+    if (!outputHTML) throw new Error('Empty response');
+
+    document.getElementById('output-content').innerHTML = outputHTML;
+    document.getElementById('output-section').classList.add('show');
+
+  } catch (err) {
+    document.getElementById('loading-screen').classList.remove('show');
+    document.getElementById('output-content').innerHTML = `<div class="error-msg">Something went wrong: ${err.message}. Please try again.</div>`;
+    document.getElementById('output-section').classList.add('show');
+  }
+}
+
+function copyOutput() {
+  const content = document.getElementById('output-content');
+  navigator.clipboard.writeText(content.innerText).then(() => {
+    const confirm = document.getElementById('copy-confirm');
+    confirm.classList.add('show');
+    setTimeout(() => confirm.classList.remove('show'), 3000);
+  });
+}
+
+function restart() {
+  currentQ = 0;
+  Object.keys(answers).forEach(k => delete answers[k]);
+  Object.keys(multiSelections).forEach(k => delete multiSelections[k]);
+  document.getElementById('output-section').classList.remove('show');
+  document.getElementById('intro-section').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>

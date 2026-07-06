@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Operator — Weekly Performance Analyzer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
+
+  :root {
+    --black: #0A0A0A;
+    --off-black: #111111;
+    --card: #161616;
+    --border: #232323;
+    --accent: #C8F135;
+    --accent-dim: rgba(200, 241, 53, 0.08);
+    --accent-mid: rgba(200, 241, 53, 0.18);
+    --white: #F5F5F0;
+    --muted: #888880;
+    --danger: #FF4444;
+    --warning: #F5A623;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+  }
+
+  .header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    background: var(--black);
+    z-index: 100;
+  }
+
+  .header-badge {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border: 1px solid rgba(200, 241, 53, 0.2);
+    padding: 4px 10px;
+    border-radius: 3px;
+  }
+
+  .header-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  /* INTRO */
+  .page-eyebrow {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .page-headline {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(26px, 4vw, 40px);
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: -0.02em;
+    margin-bottom: 10px;
+    line-height: 1.1;
+  }
+
+  .page-sub {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 40px;
+    max-width: 560px;
+  }
+
+  /* SECTION LABELS */
+  .section-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* DAY GRID */
+  .day-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+    margin-bottom: 32px;
+  }
+
+  .day-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .day-header {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    text-align: center;
+    letter-spacing: 0.1em;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .metric-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 4px;
+  }
+
+  .score-input {
+    width: 100%;
+    background: var(--off-black);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 6px;
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.15s ease;
+    -moz-appearance: textfield;
+  }
+
+  .score-input::-webkit-outer-spin-button,
+  .score-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+  }
+
+  .score-input:focus {
+    border-color: rgba(200, 241, 53, 0.5);
+  }
+
+  .score-input::placeholder {
+    color: #444;
+    font-weight: 400;
+  }
+
+  /* ADHERENCE ROW */
+  .adherence-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+    margin-bottom: 32px;
+  }
+
+  .adherence-btn {
+    background: var(--off-black);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 4px;
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    letter-spacing: 0.05em;
+  }
+
+  .adherence-btn:hover {
+    border-color: rgba(200, 241, 53, 0.3);
+  }
+
+  .adherence-btn.yes {
+    background: var(--accent-mid);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .adherence-btn.no {
+    background: rgba(255, 68, 68, 0.08);
+    border-color: rgba(255, 68, 68, 0.3);
+    color: #ff7070;
+  }
+
+  /* WINS / FAILURES / NOTES */
+  .text-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .text-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .text-group-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .text-area {
+    background: var(--off-black);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    line-height: 1.6;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.15s ease;
+    min-height: 100px;
+  }
+
+  .text-area:focus {
+    border-color: rgba(200, 241, 53, 0.4);
+  }
+
+  .text-area::placeholder {
+    color: #444;
+  }
+
+  .notes-area {
+    width: 100%;
+    background: var(--off-black);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    line-height: 1.6;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.15s ease;
+    min-height: 80px;
+    margin-bottom: 32px;
+  }
+
+  .notes-area:focus {
+    border-color: rgba(200, 241, 53, 0.4);
+  }
+
+  .notes-area::placeholder {
+    color: #444;
+  }
+
+  /* SCORE LEGEND */
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+    padding: 14px 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  /* SUBMIT */
+  .submit-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .btn-analyze {
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    padding: 14px 36px;
+    color: var(--black);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-analyze:hover {
+    background: #d4f545;
+    transform: translateY(-1px);
+  }
+
+  .btn-analyze:disabled {
+    background: var(--border);
+    color: var(--muted);
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-reset {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 24px;
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-reset:hover {
+    border-color: var(--muted);
+    color: var(--white);
+  }
+
+  .validation-msg {
+    font-size: 13px;
+    color: var(--warning);
+    display: none;
+  }
+
+  .validation-msg.show {
+    display: block;
+  }
+
+  /* LOADING */
+  .loading-overlay {
+    display: none;
+    text-align: center;
+    padding: 60px 0;
+  }
+
+  .loading-overlay.show {
+    display: block;
+  }
+
+  .loading-spinner {
+    width: 44px;
+    height: 44px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 24px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 8px;
+  }
+
+  .loading-sub {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* OUTPUT */
+  .output-section {
+    display: none;
+    animation: fadeIn 0.4s ease;
+  }
+
+  .output-section.show {
+    display: block;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .output-header {
+    margin-bottom: 28px;
+  }
+
+  .output-headline {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+
+  .output-sub {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .output-content {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 36px;
+    margin-bottom: 24px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--white);
+  }
+
+  .output-content h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 28px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .output-content h2:first-child { margin-top: 0; }
+
+  .output-content h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--white);
+    margin-top: 16px;
+    margin-bottom: 8px;
+  }
+
+  .output-content p {
+    color: #ccc;
+    margin-bottom: 10px;
+  }
+
+  .output-content ul {
+    padding-left: 20px;
+    margin-bottom: 12px;
+  }
+
+  .output-content li {
+    color: #ccc;
+    margin-bottom: 6px;
+  }
+
+  .output-content strong {
+    color: var(--white);
+    font-weight: 600;
+  }
+
+  .output-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .btn-copy {
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    padding: 12px 28px;
+    color: var(--black);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-copy:hover { background: #d4f545; }
+
+  .btn-new {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 24px;
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-new:hover { border-color: var(--muted); color: var(--white); }
+
+  .copy-confirm {
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 600;
+    display: none;
+  }
+
+  .copy-confirm.show { display: block; }
+
+  .error-msg {
+    background: rgba(255, 68, 68, 0.08);
+    border: 1px solid rgba(255, 68, 68, 0.25);
+    border-radius: 8px;
+    padding: 14px 18px;
+    color: #ff7070;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 36px 0;
+  }
+
+  @media (max-width: 640px) {
+    .day-grid, .adherence-grid { grid-template-columns: repeat(4, 1fr); }
+    .text-row { grid-template-columns: 1fr; }
+    .output-content { padding: 24px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="header-badge">AI Tool</span>
+  <span class="header-title">The Operator — Weekly Performance Analyzer</span>
+</div>
+
+<div class="container">
+
+  <!-- FORM SECTION -->
+  <div id="form-section">
+    <div class="page-eyebrow">The Operator System — AI Tool 2 of 5</div>
+    <h1 class="page-headline">Weekly Performance<br>Analyzer</h1>
+    <p class="page-sub">Log your week's data below. The AI will identify patterns, flag gaps, and give you one specific adjustment to make next week. Run this every Sunday as part of your weekly review ritual.</p>
+
+    <!-- SCORE LEGEND -->
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#ff4444"></div>1–3 = Poor</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f5a623"></div>4–6 = Average</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#C8F135"></div>7–9 = Good</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#fff"></div>10 = Elite</div>
+      <div class="legend-item" style="margin-left:auto; color: var(--muted); font-size:12px;">Leave blank = day off or no data</div>
+    </div>
+
+    <!-- OUTPUT SCORES -->
+    <div class="section-label">Daily Output Score (1–10)</div>
+    <div class="day-grid" id="output-grid">
+      <!-- Generated by JS -->
+    </div>
+
+    <!-- ENERGY SCORES -->
+    <div class="section-label">Daily Energy Rating (1–10)</div>
+    <div class="day-grid" id="energy-grid"></div>
+
+    <!-- CONFIDENCE SCORES -->
+    <div class="section-label">Daily Confidence Audit Score (1–10)</div>
+    <div class="day-grid" id="confidence-grid"></div>
+
+    <!-- SUPPLEMENT ADHERENCE -->
+    <div class="section-label">Supplement Adherence</div>
+    <div class="adherence-grid" id="adherence-grid"></div>
+
+    <hr class="divider">
+
+    <!-- WINS AND FAILURES -->
+    <div class="text-row">
+      <div class="text-group">
+        <div class="text-group-label">🏆 Biggest Wins This Week</div>
+        <textarea class="text-area" id="wins" placeholder="What worked? What are you proud of? What would you tell someone you respect?"></textarea>
+      </div>
+      <div class="text-group">
+        <div class="text-group-label">⚠️ Biggest Failures or Gaps</div>
+        <textarea class="text-area" id="failures" placeholder="Where did you fall short? What broke down and why?"></textarea>
+      </div>
+    </div>
+
+    <!-- CONTEXT NOTES -->
+    <div class="section-label">Context and Notes</div>
+    <textarea class="notes-area" id="notes" placeholder="Anything else relevant — unusual circumstances, schedule disruptions, how you felt overall, what you're struggling with right now..."></textarea>
+
+    <!-- SUBMIT -->
+    <div class="submit-row">
+      <button class="btn-analyze" id="analyze-btn" onclick="runAnalysis()">Analyze My Week →</button>
+      <button class="btn-reset" onclick="resetForm()">Clear All</button>
+      <span class="validation-msg" id="validation-msg">Please enter at least a few daily scores before analyzing.</span>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div class="loading-overlay" id="loading">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Analyzing Your Week</div>
+    <div class="loading-sub">Reading your data and identifying patterns. Give it 20–30 seconds.</div>
+  </div>
+
+  <!-- OUTPUT -->
+  <div class="output-section" id="output-section">
+    <div class="output-header">
+      <div class="page-eyebrow">Your Weekly Debrief</div>
+      <div class="output-headline">Week Analysis</div>
+      <div class="output-sub">Copy this into your Notion dashboard under your weekly review entry.</div>
+    </div>
+    <div class="output-content" id="output-content"></div>
+    <div class="output-actions">
+      <button class="btn-copy" onclick="copyOutput()">Copy to Clipboard</button>
+      <button class="btn-new" onclick="newWeek()">Log Another Week</button>
+      <span class="copy-confirm" id="copy-confirm">✓ Copied</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const METRICS = ['output', 'energy', 'confidence'];
+const adherence = {};
+
+// Build grids
+function buildGrids() {
+  METRICS.forEach(metric => {
+    const grid = document.getElementById(`${metric}-grid`);
+    grid.innerHTML = DAYS.map(day => `
+      <div class="day-col">
+        <div class="day-header">${day}</div>
+        <input
+          class="score-input"
+          type="number"
+          min="1" max="10"
+          id="${metric}-${day.toLowerCase()}"
+          placeholder="—"
+        />
+      </div>
+    `).join('');
+  });
+
+  // Adherence buttons
+  const adhGrid = document.getElementById('adherence-grid');
+  adhGrid.innerHTML = DAYS.map(day => {
+    const key = `adh-${day.toLowerCase()}`;
+    adherence[key] = null;
+    return `
+      <div class="day-col">
+        <div class="day-header">${day}</div>
+        <button class="adherence-btn" id="${key}" onclick="toggleAdherence('${key}')">—</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleAdherence(key) {
+  const btn = document.getElementById(key);
+  if (adherence[key] === null) {
+    adherence[key] = true;
+    btn.textContent = 'YES';
+    btn.className = 'adherence-btn yes';
+  } else if (adherence[key] === true) {
+    adherence[key] = false;
+    btn.textContent = 'NO';
+    btn.className = 'adherence-btn no';
+  } else {
+    adherence[key] = null;
+    btn.textContent = '—';
+    btn.className = 'adherence-btn';
+  }
+}
+
+function getScores(metric) {
+  return DAYS.map(day => {
+    const val = document.getElementById(`${metric}-${day.toLowerCase()}`).value;
+    return { day, score: val ? parseInt(val) : null };
+  });
+}
+
+function getAdherence() {
+  return DAYS.map(day => {
+    const key = `adh-${day.toLowerCase()}`;
+    return { day, took: adherence[key] };
+  });
+}
+
+function hasEnoughData() {
+  const outputScores = getScores('output').filter(d => d.score !== null);
+  return outputScores.length >= 3;
+}
+
+function buildDataSummary() {
+  const outputScores = getScores('output');
+  const energyScores = getScores('energy');
+  const confidenceScores = getScores('confidence');
+  const adhData = getAdherence();
+
+  const fmt = (arr) => arr.map(d => d.score !== null ? `${d.day}: ${d.score}` : `${d.day}: N/A`).join(', ');
+  const fmtAdh = (arr) => arr.map(d => d.took === null ? `${d.day}: N/A` : `${d.day}: ${d.took ? 'Yes' : 'No'}`).join(', ');
+
+  const avg = (arr) => {
+    const valid = arr.filter(d => d.score !== null).map(d => d.score);
+    return valid.length ? (valid.reduce((a,b) => a+b, 0) / valid.length).toFixed(1) : 'N/A';
+  };
+
+  return `OUTPUT SCORES: ${fmt(outputScores)} | Weekly avg: ${avg(outputScores)}/10
+ENERGY RATINGS: ${fmt(energyScores)} | Weekly avg: ${avg(energyScores)}/10
+CONFIDENCE AUDIT: ${fmt(confidenceScores)} | Weekly avg: ${avg(confidenceScores)}/10
+SUPPLEMENT ADHERENCE: ${fmtAdh(adhData)}
+WINS: ${document.getElementById('wins').value || 'None logged'}
+FAILURES/GAPS: ${document.getElementById('failures').value || 'None logged'}
+CONTEXT NOTES: ${document.getElementById('notes').value || 'None'}`;
+}
+
+async function runAnalysis() {
+  if (!hasEnoughData()) {
+    document.getElementById('validation-msg').classList.add('show');
+    return;
+  }
+  document.getElementById('validation-msg').classList.remove('show');
+
+  document.getElementById('form-section').style.display = 'none';
+  document.getElementById('loading').classList.add('show');
+
+  const dataSummary = buildDataSummary();
+
+  const systemPrompt = `You are the performance analysis engine behind The Operator System — a premium course built around biological optimization, psychological operating systems, and execution architecture.
+
+Your job is to analyze a student's weekly performance data and return a structured weekly debrief. You are direct, specific, and evidence-based. You reference the actual data the student logged. You do not give generic advice. Every insight must be grounded in what the numbers and notes actually show.
+
+THE OPERATOR FRAMEWORK CONTEXT:
+- Output score: did the student ship their most important work each day? Low scores = execution failure
+- Energy rating: biological optimization signal. Low energy = sleep, nutrition, supplement, or exercise issue
+- Confidence audit: end-of-day assessment of how proud they'd be telling others what they got done. Divergence from output score is significant
+- Supplement adherence: directly affects energy and dopamine architecture. Missed days correlate with performance dips
+- Wins/failures: qualitative context that explains the numbers
+- The student's goal is consistent high-output execution — not perfection, but systematic improvement week over week
+
+OUTPUT FORMAT: Use HTML with <h2> for section headers, <h3> for subsections, <p> and <ul><li> for content. Be direct and specific. Reference actual data points. Address the student as "you".
+
+Complete ALL five sections fully before stopping:
+1. WEEK IN REVIEW
+2. PATTERN FLAGS
+3. BIGGEST WIN
+4. BIGGEST GAP
+5. THIS WEEK'S ONE ADJUSTMENT`;
+
+  const userPrompt = `Analyze my week and give me my performance debrief.
+
+WEEKLY DATA:
+${dataSummary}
+
+REQUIRED OUTPUT SECTIONS:
+1. WEEK IN REVIEW — 3-4 sentences summarizing what the data shows overall. Include average scores and what they indicate about the week's quality.
+2. PATTERN FLAGS — Identify 2-4 specific patterns or correlations in the data. Examples: energy drops on specific days, confidence and output diverging, supplement misses correlating with low energy days, mid-week slumps. Reference specific days and scores. If data is limited, note what you can see and what to watch for next week.
+3. BIGGEST WIN — Call out the single most positive data point or pattern. What worked and why does it matter? What should be protected and repeated next week?
+4. BIGGEST GAP — What does the data show as the primary failure point this week? Be specific. Reference the actual numbers and notes. What is the root cause based on the framework?
+5. THIS WEEK'S ONE ADJUSTMENT — Based on everything, give one single specific action to take in the coming week. Not a list — one thing. Make it concrete and implementable on day one of next week.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 8000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+
+    const data = await response.json();
+    const rawText = data.content?.map(c => c.text || '').join('') || '';
+    const outputHTML = rawText.replace(/```html|```/g, '').trim();
+
+    document.getElementById('loading').classList.remove('show');
+
+    if (!outputHTML) throw new Error('Empty response');
+
+    document.getElementById('output-content').innerHTML = outputHTML;
+    document.getElementById('output-section').classList.add('show');
+
+  } catch (err) {
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('output-content').innerHTML = `<div class="error-msg">Something went wrong: ${err.message}. Please try again.</div>`;
+    document.getElementById('output-section').classList.add('show');
+  }
+}
+
+function copyOutput() {
+  const content = document.getElementById('output-content');
+  navigator.clipboard.writeText(content.innerText).then(() => {
+    const confirm = document.getElementById('copy-confirm');
+    confirm.classList.add('show');
+    setTimeout(() => confirm.classList.remove('show'), 3000);
+  });
+}
+
+function resetForm() {
+  METRICS.forEach(metric => {
+    DAYS.forEach(day => {
+      const input = document.getElementById(`${metric}-${day.toLowerCase()}`);
+      if (input) input.value = '';
+    });
+  });
+  DAYS.forEach(day => {
+    const key = `adh-${day.toLowerCase()}`;
+    adherence[key] = null;
+    const btn = document.getElementById(key);
+    if (btn) { btn.textContent = '—'; btn.className = 'adherence-btn'; }
+  });
+  document.getElementById('wins').value = '';
+  document.getElementById('failures').value = '';
+  document.getElementById('notes').value = '';
+  document.getElementById('validation-msg').classList.remove('show');
+}
+
+function newWeek() {
+  resetForm();
+  document.getElementById('output-section').classList.remove('show');
+  document.getElementById('form-section').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+buildGrids();
+</script>
+</body>
+</html>

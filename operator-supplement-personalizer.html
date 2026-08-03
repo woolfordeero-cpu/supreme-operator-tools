@@ -894,6 +894,12 @@ SECTION REQUIREMENTS:
     });
 
     const data = await response.json();
+
+    if (!response.ok || data.error) {
+      const apiMsg = data.error?.message || data.message || JSON.stringify(data);
+      throw new Error(`API error (status ${response.status}): ${apiMsg}`);
+    }
+
     const rawText = data.content?.map(c => c.text || '').join('') || '';
     const outputHTML = rawText.replace(/```html|```/g, '').trim();
 

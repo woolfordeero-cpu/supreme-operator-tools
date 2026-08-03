@@ -579,7 +579,7 @@
 
   <!-- FORM SECTION -->
   <div id="form-section">
-    <div class="page-eyebrow">The Operator System — AI Tool 2 of 5</div>
+    <div class="page-eyebrow">The Supreme Operator — AI Tool 2 of 5</div>
     <h1 class="page-headline">Weekly Performance<br>Analyzer</h1>
     <p class="page-sub">Log your week's data below. The AI will identify patterns, flag gaps, and give you one specific adjustment to make next week. Run this every Sunday as part of your weekly review ritual.</p>
 
@@ -768,7 +768,7 @@ async function runAnalysis() {
 
   const dataSummary = buildDataSummary();
 
-  const systemPrompt = `You are the performance analysis engine behind The Operator System — a premium course built around biological optimization, psychological operating systems, and execution architecture.
+  const systemPrompt = `You are the performance analysis engine behind The Supreme Operator — a premium course built around biological optimization, psychological operating systems, and execution architecture.
 
 Your job is to analyze a student's weekly performance data and return a structured weekly debrief. You are direct, specific, and evidence-based. You reference the actual data the student logged. You do not give generic advice. Every insight must be grounded in what the numbers and notes actually show.
 
@@ -802,11 +802,11 @@ REQUIRED OUTPUT SECTIONS:
 5. THIS WEEK'S ONE ADJUSTMENT — Based on everything, give one single specific action to take in the coming week. Not a list — one thing. Make it concrete and implementable on day one of next week.`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://supreme-operator-proxy.woolfordeero.workers.dev', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-sonnet-5',
         max_tokens: 8000,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }]
